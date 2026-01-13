@@ -1,2 +1,5 @@
-elixir 1.9.1
-erlang 22.1
+elixir 1.19
+erlang 28
+ghc    latest
+cabal  latest
+stack  latest
