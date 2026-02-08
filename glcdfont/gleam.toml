@@ -16,6 +16,9 @@ version = "1.0.0"
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
 stdin = ">= 2.0.2 and < 3.0.0"
 gleam_yielder = ">= 1.1.0 and < 2.0.0"
+pngleam = ">= 1.1.0 and < 2.0.0"
+clip = ">= 1.2.0 and < 2.0.0"
+argv = ">= 1.0.2 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

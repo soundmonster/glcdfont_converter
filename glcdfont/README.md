@@ -1,24 +1,20 @@
-# glcdfont_gleam
+# glcdfont
 
-[![Package Version](https://img.shields.io/hexpm/v/glcdfont_gleam)](https://hex.pm/packages/glcdfont_gleam)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/glcdfont_gleam/)
+Conversion utility for the `glcdfont` LCD font format as used in QMK, written in [Gleam](https://gleam.run).
 
-```sh
-gleam add glcdfont_gleam@1
-```
-```gleam
-import glcdfont_gleam
-
-pub fn main() -> Nil {
-  // TODO: An example of the project in use
-}
-```
-
-Further documentation can be found at <https://hexdocs.pm/glcdfont_gleam>.
-
-## Development
+## Usage
 
 ```sh
-gleam run   # Run the project
+glcdfont preview < glcdfont.c  # Preview the font using pseudographics in the terminal
+glcdfont topng < glcdfont.c > glcdfont.png  # Convert font to PNG 
+glcdfont frompng < glcdfont.png | pbcopy  # Convert PNG to font, paste output into the PROGMEM array in the glcdfont.c file
+```
+
+# Development
+
+```sh
+gleam run preview < glcdfont.c  # Preview the font using pseudographics in the terminal
+gleam run topng < glcdfont.c > glcdfont.png  # Convert font to PNG 
+gleam run frompng < glcdfont.png | pbcopy  # Convert PNG to font 
 gleam test  # Run the tests
 ```
