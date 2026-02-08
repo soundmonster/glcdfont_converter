@@ -1,5 +1,8 @@
+import gleam/bit_array
 import gleam/list
+import gleam/result
 import gleam/string
+import pngleam
 
 pub type Pixels =
   List(List(Bool))
@@ -57,11 +60,12 @@ const bitwise: List(Int) = [
   0b10000000,
 ]
 
-pub fn pixels_to_bit_arrays(pixels: Pixels) -> List(List(List(Int))) {
+pub fn pixels_to_bit_arrays(pixels: Pixels) -> List(BitArray) {
   pixels
-  |> list.map(list.sized_chunk(_, 8))
-  |> list.map(
-    list.map(_, fn(byte) {
+  |> list.map(fn(row) {
+    row
+    |> list.sized_chunk(8)
+    |> list.map(fn(byte) {
       byte
       |> list.reverse
       |> list.map2(bitwise, fn(x, y) {
@@ -70,6 +74,20 @@ pub fn pixels_to_bit_arrays(pixels: Pixels) -> List(List(List(Int))) {
           False -> 0
         }
       })
-    }),
-  )
+      |> list.fold(0, fn(x, y) { x + y })
+    })
+    |> list.fold(<<>>, fn(acc, x) { bit_array.append(acc, <<x>>) })
+  })
+}
+
+pub fn pixels_to_png(pixels: Pixels) -> Result(BitArray, Nil) {
+  let bits = pixels_to_bit_arrays(pixels)
+  let height = list.length(bits)
+  use first_row <- result.try(list.first(bits))
+  let width = bit_array.bit_size(first_row)
+  use color_info <- result.try(echo pngleam.color_info(pngleam.Greyscale, 1))
+
+  bits
+  |> pngleam.from_packed(width, height, color_info, pngleam.default_compression)
+  |> Ok
 }
