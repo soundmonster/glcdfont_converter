@@ -1,4 +1,4 @@
-import glcdfont_gleam/bitmap.{type Pixels}
+import glcdfont/bitmap.{type Pixels}
 import gleam/int
 import gleam/list
 import gleam/string

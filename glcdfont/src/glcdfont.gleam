@@ -1,5 +1,5 @@
-import glcdfont_gleam/bitmap
-import glcdfont_gleam/font
+import glcdfont/bitmap
+import glcdfont/font
 import gleam/io
 import gleam/list
 import stdin

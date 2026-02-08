@@ -1,4 +1,4 @@
-name = "glcdfont_gleam"
+name = "glcdfont"
 version = "1.0.0"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
@@ -16,8 +16,6 @@ version = "1.0.0"
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
 stdin = ">= 2.0.2 and < 3.0.0"
 gleam_yielder = ">= 1.1.0 and < 2.0.0"
-argv = ">= 1.0.2 and < 2.0.0"
-glint = ">= 1.2.1 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
