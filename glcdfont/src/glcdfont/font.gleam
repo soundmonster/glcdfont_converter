@@ -1,26 +1,26 @@
 import glcdfont/bitmap.{type Pixels}
 import gleam/int
 import gleam/list
+import gleam/regexp
+import gleam/result
 import gleam/string
-import gleam/yielder
 
 pub type Font {
-  Font(char_width: Int, char_height: Int, glyphs: List(Pixels))
+  Font(glyph_width: Int, glyph_height: Int, glyphs: List(Pixels))
 }
 
 pub fn parse_c_file(
-  glcd_font_in_c_code: yielder.Yielder(String),
-  char_width: Int,
-  char_height: Int,
-) -> Font {
+  glcd_font_in_c_code: String,
+  glyph_width: Int,
+  glyph_height: Int,
+) -> Result(Font, Nil) {
+  use bytes <- result.try(extract_hex_array(glcd_font_in_c_code))
   let glyphs =
-    glcd_font_in_c_code
-    |> extract_hex_array
+    bytes
     |> decode
-    |> glyphs(char_width, char_height)
-    |> yielder.to_list
+    |> glyphs(glyph_width, glyph_height)
 
-  Font(char_width:, char_height:, glyphs:)
+  Ok(Font(glyph_width:, glyph_height:, glyphs:))
 }
 
 pub fn to_packed_pixels(font: Font, glyphs_per_row: Int) -> Pixels {
@@ -34,25 +34,23 @@ fn concat_glyphs(glyph: Pixels, another: Pixels) {
   list.map2(glyph, another, list.append)
 }
 
-fn decode(input: yielder.Yielder(String)) {
+fn decode(input: List(String)) {
   input
-  |> yielder.flat_map(fn(l) { yielder.from_list(string.split(l, ",")) })
-  |> yielder.map(string.trim)
-  |> yielder.filter_map(fn(hex: String) {
+  |> list.filter_map(fn(hex: String) {
     case hex {
       "0x" <> hx -> int.base_parse(hx, 16)
       _ -> Error(Nil)
     }
   })
-  |> yielder.flat_map(int_to_bits)
+  |> list.flat_map(int_to_bits)
 }
 
-fn glyphs(bits: yielder.Yielder(Bool), char_width: Int, char_height: Int) {
+fn glyphs(bits: List(Bool), glyph_width: Int, glyph_height: Int) {
   bits
-  |> yielder.sized_chunk(char_width * char_height)
-  |> yielder.map(list.sized_chunk(_, char_height))
-  |> yielder.map(list.transpose)
-  |> yielder.map(list.reverse)
+  |> list.sized_chunk(glyph_width * glyph_height)
+  |> list.map(list.sized_chunk(_, glyph_height))
+  |> list.map(list.transpose)
+  |> list.map(list.reverse)
 }
 
 fn int_to_bits(i: Int) {
@@ -62,23 +60,25 @@ fn int_to_bits(i: Int) {
   |> int.to_base2
   |> string.pad_start(to: 8, with: "0")
   |> string.to_graphemes
-  |> yielder.from_list
-  |> yielder.map(fn(c) { c == "1" })
+  |> list.map(fn(c) { c == "1" })
 }
 
-fn extract_hex_array(
-  glcd_font_in_c_code: yielder.Yielder(String),
-) -> yielder.Yielder(String) {
-  glcd_font_in_c_code
-  |> yielder.drop_while(fn(l) {
-    !{
-      string.contains(l, "PROGMEM")
-      && string.contains(l, "font[]")
-      && string.contains(l, "unsigned char")
-      && string.contains(l, "const")
-    }
+fn extract_hex_array(glcd_font_in_c_code: String) -> Result(List(String), Nil) {
+  let assert Ok(array_regex) =
+    regexp.from_string(
+      "\\{\\s*(?:0x[0-9a-fA-F]{1,2}\\s*,\\s*)*0x[0-9a-fA-F]{1,2}\\s*,?\\s*\\}",
+    )
+
+  let assert Ok(byte_regex) = regexp.from_string("0x[0-9a-fA-F]{1,2}")
+
+  let flat_file = glcd_font_in_c_code |> string.replace("\n", "")
+
+  regexp.scan(array_regex, flat_file)
+  |> list.map(fn(match) { match.content })
+  |> list.max(fn(l, r) { int.compare(string.length(l), string.length(r)) })
+  |> result.try(fn(arr) {
+    regexp.scan(byte_regex, arr)
+    |> list.map(fn(match) { match.content })
+    |> Ok
   })
-  |> yielder.drop(1)
-  |> yielder.take_while(fn(l) { !string.contains(l, "}") })
-  |> yielder.map(string.trim)
 }
