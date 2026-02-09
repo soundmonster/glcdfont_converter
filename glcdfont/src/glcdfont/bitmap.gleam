@@ -56,7 +56,7 @@ const bitwise: List(Int) = [
   0b00001000,
   0b00010000,
   0b00100000,
-  0b010000000,
+  0b01000000,
   0b10000000,
 ]
 
@@ -85,7 +85,7 @@ pub fn pixels_to_png(pixels: Pixels) -> Result(BitArray, Nil) {
   let height = list.length(bits)
   use first_row <- result.try(list.first(bits))
   let width = bit_array.bit_size(first_row)
-  use color_info <- result.try(echo pngleam.color_info(pngleam.Greyscale, 1))
+  use color_info <- result.try(pngleam.color_info(pngleam.Greyscale, 1))
 
   bits
   |> pngleam.from_packed(width, height, color_info, pngleam.default_compression)

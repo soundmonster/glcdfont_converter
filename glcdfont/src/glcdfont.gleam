@@ -4,10 +4,8 @@ import clip/help
 import clip/opt
 import glcdfont/bitmap
 import glcdfont/font
-import gleam/bit_array
 import gleam/io
 import gleam/list
-import gleam/result
 import simplifile
 import stdin
 

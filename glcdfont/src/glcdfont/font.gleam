@@ -70,7 +70,14 @@ fn extract_hex_array(
   glcd_font_in_c_code: yielder.Yielder(String),
 ) -> yielder.Yielder(String) {
   glcd_font_in_c_code
-  |> yielder.drop_while(fn(l) { !string.contains(l, "font[] PROGMEM") })
+  |> yielder.drop_while(fn(l) {
+    !{
+      string.contains(l, "PROGMEM")
+      && string.contains(l, "font[]")
+      && string.contains(l, "unsigned char")
+      && string.contains(l, "const")
+    }
+  })
   |> yielder.drop(1)
   |> yielder.take_while(fn(l) { !string.contains(l, "}") })
   |> yielder.map(string.trim)
