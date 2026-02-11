@@ -6,8 +6,10 @@ import glcdfont/bitmap
 import glcdfont/font
 import gleam/io
 import gleam/list
+import gleam/result
 import gleam/string
 import gleam/yielder
+import gleave
 import simplifile
 import stdin
 
@@ -122,71 +124,65 @@ pub fn run() -> Nil {
     |> clip.run(argv.load().arguments)
   case command {
     Error(e) -> io.println_error(e)
-    Ok(Preview(args)) -> preview(args)
-    Ok(ToPng(args, outfile)) -> to_png(args, outfile)
-    Ok(FromPng(args)) -> from_png(args)
+    Ok(Preview(args)) -> cli(preview(args))
+    Ok(ToPng(args, outfile)) -> cli(to_png(args, outfile))
+    Ok(FromPng(args)) -> cli(from_png(args))
   }
 }
 
-fn preview(args: Args) -> Nil {
-  let input_result = case args.infile {
-    "-" -> Ok(stdin.read_lines() |> yielder.to_list() |> string.concat)
-    filename -> simplifile.read(filename)
-  }
-  let _ = {
-    case input_result {
-      Ok(input) -> {
-        let maybe_font =
-          font.parse_c_file(input, args.glyph_width, args.glyph_height)
-        case maybe_font {
-          Ok(font) -> {
-            font
-            |> font.to_packed_pixels(args.columns)
-            |> bitmap.pixels_to_pseudographics
-            |> list.each(io.println)
-          }
-          Error(Nil) -> io.println_error("Couldn't find font in given file")
-        }
-      }
-      Error(e) -> e |> simplifile.describe_error |> io.println_error
+fn cli(command_result: Result(a, String)) -> Nil {
+  case command_result {
+    Ok(_) -> Nil
+    Error(message) -> {
+      io.println_error(message)
+      gleave.exit(1)
     }
   }
 }
 
-fn to_png(args: Args, outfile: String) -> Nil {
-  let input_result = case args.infile {
+fn preview(args: Args) -> Result(Nil, String) {
+  use input <- with_file(args.infile)
+  use font <- result.try(
+    font.parse_c_file(input, args.glyph_width, args.glyph_height)
+    |> result.replace_error("Could not parse file"),
+  )
+
+  font
+  |> font.to_packed_pixels(args.columns)
+  |> bitmap.pixels_to_pseudographics
+  |> list.each(io.println)
+  |> Ok
+}
+
+fn to_png(args: Args, outfile: String) -> Result(Nil, String) {
+  use input <- with_file(args.infile)
+  use font <- result.try(
+    font.parse_c_file(input, args.glyph_width, args.glyph_height)
+    |> result.replace_error("Could not parse file"),
+  )
+
+  use png <- result.try(
+    font
+    |> font.to_packed_pixels(args.columns)
+    |> bitmap.pixels_to_png
+    |> result.replace_error("Could not produce valid PNG from given input"),
+  )
+  simplifile.write_bits(outfile, png)
+  |> result.map_error(simplifile.describe_error)
+}
+
+fn with_file(
+  infile: String,
+  fun: fn(String) -> Result(a, String),
+) -> Result(a, String) {
+  case infile {
     "-" -> Ok(stdin.read_lines() |> yielder.to_list() |> string.concat)
     filename -> simplifile.read(filename)
   }
-  case input_result {
-    Ok(input) -> {
-      let maybe_font =
-        input |> font.parse_c_file(args.glyph_width, args.glyph_height)
-      case maybe_font {
-        Ok(font) -> {
-          let maybe_png =
-            font
-            |> font.to_packed_pixels(args.columns)
-            |> bitmap.pixels_to_png
-          case maybe_png {
-            Ok(png) -> {
-              case simplifile.write_bits(outfile, png) {
-                Ok(Nil) -> Nil
-                Error(e) -> e |> simplifile.describe_error |> io.println_error
-              }
-            }
-            Error(Nil) -> io.println_error("Couldn't find font in given file")
-          }
-        }
-        Error(Nil) -> io.println_error("Can not convert input to PNG")
-      }
-    }
-    Error(e) -> e |> simplifile.describe_error |> io.println_error
-  }
-
-  Nil
+  |> result.map_error(simplifile.describe_error)
+  |> result.try(fun)
 }
 
-fn from_png(_args: Args) -> Nil {
+fn from_png(_args: Args) -> Result(Nil, String) {
   todo
 }
